@@ -117,14 +117,14 @@
         flex-direction: column; /* stack canvas + text vertically */
     }
 
-    /* The rotating canvas is 400×400, centered inside overlay */
+    /* The rotating canvas is 450×450, centered inside overlay */
     #loadingCanvas {
         background: #102131;
         transform: rotate(45deg);
         display: inline-block;
     }
 
-    /* The “Generating…” text below the canvas */
+    /* The “Generating your cover letter” text */
     .loading-text {
         margin-top: 7rem;
         color: #ffffff;
@@ -132,10 +132,38 @@
         font-weight: 500;
         font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-        animation: pulse 1.5s infinite;
     }
 
-  
+        /* Reserve 3 characters’ worth of horizontal space so the dots don’t shift anything */
+        .loading-text .dots {
+            display: inline-block;
+            width: 3ch;
+            text-align: left;
+        }
+
+            /* The animated dots after the text – note the escaped @@keyframes */
+            .loading-text .dots::after {
+                content: "";
+                animation: ellipsis 1.5s infinite;
+            }
+
+    @@keyframes ellipsis {
+        0% {
+            content: "";
+        }
+
+        33% {
+            content: ".";
+        }
+
+        66% {
+            content: "..";
+        }
+
+        100% {
+            content: "...";
+        }
+    }
 </style>
 
 <div id="mainContent">
@@ -179,7 +207,9 @@
 <!-- LOADING OVERLAY (initially hidden) -->
 <div id="loadingOverlay">
     <canvas id="loadingCanvas" width="450" height="450"></canvas>
-    <div class="loading-text">Generating your cover letter...</div>
+    <div class="loading-text">
+        Generating your cover letter<span class="dots"></span>
+    </div>
 </div>
 
 <!-- JavaScript that adds the “bg-fade-in” class once the window loads -->
