@@ -1,17 +1,304 @@
-﻿// Views/CoverLetter/Index.cshtml
-@model CoverLetterApp.Models.CoverLetterRequest
+﻿@model CoverLetterApp.Models.CoverLetterRequest
 @{
     ViewData["Title"] = "Generate Cover Letter";
 }
-<h2>Generate Cover Letter</h2>
-<form asp-controller="CoverLetter" asp-action="Generate" method="post">
-    <div class="form-group">
-        <label asp-for="JobDescription"></label>
-        <textarea asp-for="JobDescription" class="form-control" rows="6"></textarea>
+<style>
+    body {
+        background: none;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: -1;
+            opacity: 0; /* start invisible */
+            transition: opacity 2s ease-in-out; /* fade-in over 2s */
+        }
+
+        body.bg-fade-in::before {
+            opacity: 1;
+        }
+
+    .generate-page-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem 1rem;
+    }
+
+    .generate-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: none;
+        border-radius: 1rem;
+        max-width: 900px;
+        width: 100%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .generate-card-header {
+        background: #5a67d8; /* indigo-600 */
+        color: #ffffff;
+        text-align: center;
+        padding: 1.5rem 1rem;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+
+    /* Card body with extra padding */
+    .generate-card-body {
+        padding: 2rem 2rem 2.5rem 2rem;
+    }
+
+    /* Styled file input labels and controls */
+    .form-label {
+        font-weight: 500;
+        color: #333333;
+    }
+
+    .form-control {
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+        .form-control:focus {
+            border-color: #5a67d8;
+            box-shadow: 0 0 0 0.2rem rgba(90, 103, 216, 0.25);
+        }
+
+    /* Custom primary button */
+    .btn-generate {
+        background: #5a67d8;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+        .btn-generate:hover {
+            background: #434190; /* indigo-700 */
+            transform: translateY(-2px);
+        }
+
+        .btn-generate:active {
+            background: #3730a3; /* indigo-800 */
+            transform: translateY(0);
+        }
+
+    /* Validation message style */
+    .text-danger {
+        font-size: 0.875rem;
+    }
+
+
+    /********************************************************************/
+    /* LOADING OVERLAY (hidden by default)                              */
+    /********************************************************************/
+    #loadingOverlay {
+        display: none; /* hidden until form submit */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.4);
+        z-index: 9999; /* sit above everything */
+        align-items: center; /* for flex centering once shown */
+        justify-content: center; /* for flex centering once shown */
+    }
+
+    /* The rotating canvas is 200×200, centered inside overlay */
+    #loadingCanvas {
+        background: #102131;
+        transform: rotate(45deg);
+        display: inline-block;
+    }
+</style>
+
+<div class="generate-page-container">
+    <div class="generate-card">
+        <!-- Header Bar -->
+        <div class="generate-card-header">
+            Generate Cover Letter
+        </div>
+
+        <!-- Body -->
+        <div class="generate-card-body">
+            <!-- Wrap the form so we can attach a submit event to it -->
+            <div id="formContainer">
+                <form asp-controller="CoverLetter"
+                      asp-action="Generate"
+                      method="post"
+                      enctype="multipart/form-data"
+                      id="generateForm">
+                    <div class="mb-4">
+                        <label asp-for="JobDescriptionFile" class="form-label">Upload Job Description</label>
+                        <input asp-for="JobDescriptionFile" type="file" class="form-control" />
+                        <span asp-validation-for="JobDescriptionFile" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="CVFile" class="form-label">Upload Your CV</label>
+                        <input asp-for="CVFile" type="file" class="form-control" />
+                        <span asp-validation-for="CVFile" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-generate w-100">Generate</button>
+                </form>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label asp-for="CVText"></label>
-        <textarea asp-for="CVText" class="form-control" rows="6"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Generate</button>
-</form>
+</div>
+
+<!-- LOADING OVERLAY (initially hidden) -->
+<div id="loadingOverlay">
+    <canvas id="loadingCanvas" width="400" height="400"></canvas>
+</div>
+
+<!-- JavaScript that adds the “bg-fade-in” class once the window loads -->
+<script>
+    window.addEventListener("load", function() {
+        document.body.classList.add("bg-fade-in");
+    });
+</script>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1) When the user submits the form, show #loadingOverlay and start animating.
+            const form = document.getElementById('generateForm');
+            const overlay = document.getElementById('loadingOverlay');
+            const canvas = document.getElementById('loadingCanvas');
+
+            form.addEventListener('submit', () => {
+                // Show overlay immediately
+                overlay.style.display = 'flex';
+
+                // Kick off the point‐animation on #loadingCanvas
+                startLoadingAnimation(canvas);
+                // NOTE: We do NOT preventDefault(); we allow the form to submit,
+                // so the browser will navigate/reload for the Generate action.
+            });
+
+            // 2) If this same view returns with a model (i.e. on post-back),
+            //    #loadingOverlay remains hidden because its CSS says display:none.
+            //    So we don't need to explicitly hide it here.
+
+            /**********************************************/
+            /*  Loading Canvas Animation Implementation   */
+            /**********************************************/
+            function startLoadingAnimation(canvasEl) {
+                if (!canvasEl) return;
+
+                const context = canvasEl.getContext('2d');
+                const radius = 5;
+                const boundaryX = canvasEl.width;
+                const boundaryY = canvasEl.height;
+                const velocity2 = 10;      // v^2
+                const numberOfPoints = 30;
+                const points = [];
+
+                // Initialize 30 random points (x,y) with speed^2 = 5
+                function initPoints() {
+                    for (let i = 0; i < numberOfPoints; i++) {
+                        let point = {};
+                        // random position inside the 200×200 square
+                        point.x = Math.random() * boundaryX;
+                        point.y = Math.random() * boundaryY;
+                        // random vx between –1…1
+                        point.vx = (Math.random() * 2 - 1);
+                        let vx2 = Math.pow(point.vx, 2);
+                        let vy2 = velocity2 - vx2;
+                        point.vy = Math.sqrt(vy2) * (Math.random() * 2 - 1);
+                        points.push(point);
+                    }
+                    // Link each point to its “buddy” (previous one, wrapping around)
+                    for (let i = 0; i < points.length; i++) {
+                        if (i === 0) {
+                            points[i].buddy = points[points.length - 1];
+                        } else {
+                            points[i].buddy = points[i - 1];
+                        }
+                    }
+                }
+
+                // If point hits an edge, re-randomize that axis’s velocity
+                function resetVelocity(point, axis, dir) {
+                    if (axis === 'x') {
+                        point.vx = dir * Math.random();
+                        let vx2 = Math.pow(point.vx, 2);
+                        let vy2 = velocity2 - vx2;
+                        point.vy = Math.sqrt(vy2) * (Math.random() * 2 - 1);
+                    } else {
+                        point.vy = dir * Math.random();
+                        let vy2 = Math.pow(point.vy, 2);
+                        let vx2 = velocity2 - vy2;
+                        point.vx = Math.sqrt(vx2) * (Math.random() * 2 - 1);
+                    }
+                }
+
+                function drawCircle(x, y) {
+                    context.beginPath();
+                    context.arc(x, y, radius, 0, 2 * Math.PI, false);
+                    context.fillStyle = '#97badc';
+                    context.fill();
+                }
+
+                function drawLine(x1, y1, x2, y2) {
+                    context.beginPath();
+                    context.moveTo(x1, y1);
+                    context.lineTo(x2, y2);
+                    context.strokeStyle = '#8ab2d8';
+                    context.stroke();
+                }
+
+                function animate() {
+                    context.clearRect(0, 0, boundaryX, boundaryY);
+
+                    for (let i = 0; i < points.length; i++) {
+                        let pt = points[i];
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+
+                        // draw the circle
+                        drawCircle(pt.x, pt.y);
+                        // draw a connecting line to its buddy
+                        drawLine(pt.x, pt.y, pt.buddy.x, pt.buddy.y);
+
+                        // bounce off edges:
+                        if (pt.x < radius) {
+                            resetVelocity(pt, 'x', 1);
+                        } else if (pt.x > boundaryX - radius) {
+                            resetVelocity(pt, 'x', -1);
+                        }
+                        if (pt.y < radius) {
+                            resetVelocity(pt, 'y', 1);
+                        } else if (pt.y > boundaryY - radius) {
+                            resetVelocity(pt, 'y', -1);
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                }
+
+                // Wait one frame so the overlay is painted, then init & animate
+                requestAnimationFrame(() => {
+                    initPoints();
+                    animate();
+                });
+            }
+        });
+    </script>
+}

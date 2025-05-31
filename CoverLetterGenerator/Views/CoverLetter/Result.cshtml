@@ -1,7 +1,130 @@
-﻿// Views/CoverLetter/Result.cshtml
-@model CoverLetterApp.Models.CoverLetterResponse
+﻿@model CoverLetterApp.Models.CoverLetterResponse
 @{
     ViewData["Title"] = "Your Cover Letter";
 }
-<h2>Your Generated Cover Letter</h2>
-<pre>@Model.CoverLetter</pre>
+
+<!--
+  Same approach as in Generate.cshtml so that the gradient background
+  fades in on load, then stays static.
+-->
+
+<style>
+    body {
+        background: none;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        body.bg-fade-in::before {
+            opacity: 1;
+        }
+
+    .result-page-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 3rem 1rem 5rem 1rem;
+    }
+
+    /* Translucent card with soft shadow */
+    .result-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: none;
+        border-radius: 1rem;
+        max-width: 1000px;
+        width: 100%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    /* Accent-colored header bar */
+    .result-card-header {
+        background: #5a67d8; /* indigo-600 */
+        color: #ffffff;
+        text-align: center;
+        padding: 1.5rem 1rem;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+
+    /* Card body with extra padding */
+    .result-card-body {
+        padding: 2rem 2rem 2.5rem 2rem;
+    }
+
+    /* Preformatted area styling */
+    .coverletter-container {
+        background: #f7fafc; /* gray-100 */
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        overflow-x: auto;
+        line-height: 1.5;
+        font-family: "Courier New", Courier, monospace;
+        color: #2d3748; /* gray-800 */
+    }
+
+    /* “Back” button */
+    .btn-back {
+        margin-top: 1.5rem;
+        background: #e2e8f0; /* gray-200 */
+        color: #2d3748; /* gray-800 */
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        font-weight: 500;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+        .btn-back:hover {
+            background: #cbd5e0; /* gray-300 */
+            transform: translateY(-1px);
+        }
+
+        .btn-back:active {
+            background: #a0aec0; /* gray-400 */
+            transform: translateY(0);
+        }
+</style>
+
+<div class="result-page-container">
+    <div class="result-card">
+        <!-- Header Bar -->
+        <div class="result-card-header">
+            Your Generated Cover Letter
+        </div>
+
+        <!-- Body -->
+        <div class="result-card-body">
+            <div class="coverletter-container">
+                <pre class="mb-0">@Model.CoverLetter</pre>
+            </div>
+
+            <a asp-controller="CoverLetter" asp-action="Index" class="btn btn-back">
+                ← Generate Another
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.addEventListener("load", function() {
+        document.body.classList.add("bg-fade-in");
+    });
+</script>
