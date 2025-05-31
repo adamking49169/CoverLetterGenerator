@@ -23,14 +23,15 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             z-index: -1;
             opacity: 0; /* start invisible */
-            transition: opacity 2s ease-in-out; /* fade-in over 2s */
+            transition: opacity 2s ease-in-out; /* fade-in */
         }
 
         body.bg-fade-in::before {
             opacity: 1;
         }
 
-    .generate-page-container {
+    /* The “main content” wrapper (form + card) */
+    #mainContent {
         display: flex;
         justify-content: center;
         align-items: center;
@@ -113,7 +114,7 @@
         z-index: 9999; /* sit above everything */
         align-items: center; /* flex centering */
         justify-content: center; /* flex centering */
-        flex-direction: column; /* stack children vertically */
+        flex-direction: column; /* stack canvas + text vertically */
     }
 
     /* The rotating canvas is 400×400, centered inside overlay */
@@ -123,36 +124,21 @@
         display: inline-block;
     }
 
-    /* New: style for the loading text */
+    /* The “Generating…” text below the canvas */
     .loading-text {
-        margin-top: 5rem;
+        margin-top: 7rem;
         color: #ffffff;
-        font-size: 1.25rem;
+        font-size: 3rem;
         font-weight: 500;
         font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
         animation: pulse 1.5s infinite;
     }
 
-   /*  keyframes pulse {
-        0%
-
-    {
-        opacity: 0.6;
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0.6;
-    }
-
-    } */
+  
 </style>
 
-<div class="generate-page-container">
+<div id="mainContent">
     <div class="generate-card">
         <!-- Header Bar -->
         <div class="generate-card-header">
@@ -168,7 +154,9 @@
                       enctype="multipart/form-data"
                       id="generateForm">
                     <div class="mb-4">
-                        <label asp-for="JobDescriptionFile" class="form-label">Upload Job Description</label>
+                        <label asp-for="JobDescriptionFile" class="form-label">
+                            Upload Job Description
+                        </label>
                         <input asp-for="JobDescriptionFile" type="file" class="form-control" />
                         <span asp-validation-for="JobDescriptionFile" class="text-danger"></span>
                     </div>
@@ -179,7 +167,9 @@
                         <span asp-validation-for="CVFile" class="text-danger"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-generate w-100">Generate</button>
+                    <button type="submit" class="btn btn-generate w-100">
+                        Generate
+                    </button>
                 </form>
             </div>
         </div>
@@ -188,8 +178,7 @@
 
 <!-- LOADING OVERLAY (initially hidden) -->
 <div id="loadingOverlay">
-    <canvas id="loadingCanvas" width="400" height="400"></canvas>
-    <!-- NEW: Stylized text below the canvas -->
+    <canvas id="loadingCanvas" width="450" height="450"></canvas>
     <div class="loading-text">Generating your cover letter...</div>
 </div>
 
@@ -206,14 +195,19 @@
             const form = document.getElementById('generateForm');
             const overlay = document.getElementById('loadingOverlay');
             const canvas = document.getElementById('loadingCanvas');
+            const mainContent = document.getElementById('mainContent');
 
             form.addEventListener('submit', () => {
-                // Show overlay (with flex layout and children stacked vertically)
+                // 1) Hide everything else immediately:
+                mainContent.style.display = 'none';
+
+                // 2) Show the full-screen overlay:
                 overlay.style.display = 'flex';
 
-                // Start the rotating‐canvas animation
+                // 3) Kick off the canvas animation:
                 startLoadingAnimation(canvas);
-                // We DO NOT call event.preventDefault(); we allow normal form POST.
+
+                // Let the form submit normally (no preventDefault)
             });
 
             function startLoadingAnimation(canvasEl) {
@@ -238,7 +232,9 @@
                         points.push(p);
                     }
                     for (let i = 0; i < points.length; i++) {
-                        points[i].buddy = (i === 0) ? points[points.length - 1] : points[i - 1];
+                        points[i].buddy = (i === 0)
+                            ? points[points.length - 1]
+                            : points[i - 1];
                     }
                 }
 
@@ -296,7 +292,7 @@
                     requestAnimationFrame(animate);
                 }
 
-                // Wait a tick so that the overlay is rendered, then launch animation
+                // Wait a tick so the overlay can appear, then start:
                 requestAnimationFrame(() => {
                     initPoints();
                     animate();
