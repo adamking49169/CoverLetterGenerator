@@ -1,11 +1,15 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CoverLetterApp.Models;
-using CoverLetterApp.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using UglyToad.PdfPig;          
+using UglyToad.PdfPig;                       // PdfPig for .pdf
+using DocumentFormat.OpenXml.Packaging;      // Open XML SDK
+using DocumentFormat.OpenXml.Wordprocessing; // Wordprocessing elements
+
+using CoverLetterApp.Models;
+using CoverLetterApp.Services;
 
 namespace CoverLetterApp.Controllers
 {
@@ -27,20 +31,20 @@ namespace CoverLetterApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Generate(CoverLetterRequest request)
         {
-            // If model validation fails (e.g. no file was uploaded), re-show the form.
             if (!ModelState.IsValid)
             {
                 return View("Index", request);
             }
 
-            // Extract text from each uploaded file (handles .txt or .pdf)
+            // Extract text from Job Description (txt/pdf/docx)
             string jobDescriptionText = await ExtractTextFromFile(request.JobDescriptionFile);
+
+            // Extract text from CV (txt/pdf/docx)
             string cvText = await ExtractTextFromFile(request.CVFile);
 
-            // Call your existing service (which expects two plain-text strings)
+            // Now call your service
             var generatedCoverLetter = await _openAi.GenerateCoverLetterAsync(jobDescriptionText, cvText);
 
-            // Package into a view model for the Result view
             var vm = new CoverLetterResponse
             {
                 CoverLetter = generatedCoverLetter
@@ -50,34 +54,49 @@ namespace CoverLetterApp.Controllers
         }
 
         /// <summary>
-        /// Reads an IFormFile. If it’s a PDF (.pdf extension), uses PdfPig to extract text.
-        /// Otherwise, reads it as plain text via StreamReader.
+        /// Reads an IFormFile. If it’s .pdf, uses PdfPig. If it’s .docx, uses Open XML SDK.
+        /// Otherwise, treats as plain text.
         /// </summary>
         private async Task<string> ExtractTextFromFile(IFormFile file)
         {
-            // Determine the file extension in lowercase
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
+            // 1) PDF (.pdf) using PdfPig
             if (extension == ".pdf")
             {
-                // Use PdfPig to extract text from PDF
                 using (var stream = file.OpenReadStream())
-                using (PdfDocument document = PdfDocument.Open(stream))
+                using (var pdfDocument = PdfDocument.Open(stream))
                 {
                     var sb = new StringBuilder();
-
-                    foreach (var page in document.GetPages())
+                    foreach (var page in pdfDocument.GetPages())
                     {
-                        // Append each page’s text
                         sb.AppendLine(page.Text);
                     }
-
                     return sb.ToString();
                 }
             }
+            // 2) DOCX (.docx) using Open XML SDK
+            else if (extension == ".docx")
+            {
+                using (var stream = file.OpenReadStream())
+                using (var wordDoc = WordprocessingDocument.Open(stream, false))
+                {
+                    var body = wordDoc.MainDocumentPart.Document.Body;
+
+                    // Extract all the TEXT() nodes from paragraphs, tables, headers, footers, etc.
+                    // A common quick way is to grab every <w:t> element under the main document body:
+                    var allText = body
+                        .Descendants<Text>()
+                        .Select(t => t.Text)
+                        .Where(txt => !string.IsNullOrWhiteSpace(txt));
+
+                    // Join with spaces or newlines as you prefer
+                    return string.Join(" ", allText);
+                }
+            }
+            // 3) Fallback: treat as plain text
             else
             {
-                // Fallback: treat as plain text
                 using (var reader = new StreamReader(file.OpenReadStream()))
                 {
                     return await reader.ReadToEndAsync();
