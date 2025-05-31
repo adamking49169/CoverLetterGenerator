@@ -4,10 +4,8 @@
 }
 
 <!--
-  Same approach as in Generate.cshtml so that the gradient background
-  fades in on load, then stays static.
+  Same gradient fade‐in styling as Generate.cshtml…
 -->
-
 <style>
     body {
         background: none;
@@ -78,9 +76,11 @@
         line-height: 1.5;
         font-family: "Courier New", Courier, monospace;
         color: #2d3748; /* gray-800 */
+        white-space: pre-wrap; /* preserve line breaks */
+        word-break: break-word;
     }
 
-    /* “Back” button */
+    /* Button styles */
     .btn-back {
         margin-top: 1.5rem;
         background: #e2e8f0; /* gray-200 */
@@ -101,6 +101,29 @@
             background: #a0aec0; /* gray-400 */
             transform: translateY(0);
         }
+
+    /* Download button style */
+    .btn-download {
+        margin-top: 1.5rem;
+        margin-left: 1rem;
+        background: #48bb78; /* green-400 */
+        color: #ffffff;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        font-weight: 500;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+        .btn-download:hover {
+            background: #38a169; /* green-500 */
+            transform: translateY(-1px);
+        }
+
+        .btn-download:active {
+            background: #2f855a; /* green-600 */
+            transform: translateY(0);
+        }
 </style>
 
 <div class="result-page-container">
@@ -116,9 +139,27 @@
                 <pre class="mb-0">@Model.CoverLetter</pre>
             </div>
 
-            <a asp-controller="CoverLetter" asp-action="Index" class="btn btn-back">
-                ← Generate Another
-            </a>
+            <div style="display: flex; align-items: center;">
+                <!-- “Back” button -->
+                <a asp-controller="CoverLetter" asp-action="Index" class="btn btn-back">
+                    ← Generate Another
+                </a>
+
+                <!-- ADDED: “Download” button -->
+                <form asp-controller="CoverLetter"
+                      asp-action="Download"
+                      method="post"
+                      style="margin: 0; padding: 0;">
+                    <!--
+                      We need to POST the entire cover letter text, preserving newlines.
+                      Placing it in a hidden textarea ensures we don’t lose line breaks.
+                    -->
+                    <textarea name="coverLetter" style="display: none;">@Model.CoverLetter</textarea>
+                    <button type="submit" class="btn btn-download">
+                        Download
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

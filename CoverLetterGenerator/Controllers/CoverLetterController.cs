@@ -52,7 +52,25 @@ namespace CoverLetterApp.Controllers
 
             return View("Result", vm);
         }
+        [HttpPost]
+        public IActionResult Download(string coverLetter)
+        {
+            if (string.IsNullOrWhiteSpace(coverLetter))
+            {
+                // If for some reason the text is empty, redirect back to Index or Result.
+                return RedirectToAction("Index");
+            }
 
+            // Convert the string to UTF-8 bytes
+            var bytes = Encoding.UTF8.GetBytes(coverLetter);
+
+            // Return a FileResult with content‐disposition so the browser prompts “Save As…”
+            return File(
+                fileContents: bytes,
+                contentType: "text/plain; charset=utf-8",
+                fileDownloadName: "CoverLetter.txt"
+            );
+        }
         /// <summary>
         /// Reads an IFormFile. If it’s .pdf, uses PdfPig. If it’s .docx, uses Open XML SDK.
         /// Otherwise, treats as plain text.
