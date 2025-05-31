@@ -3,9 +3,6 @@
     ViewData["Title"] = "Your Cover Letter";
 }
 
-<!--
-  Same gradient fade‐in styling as Generate.cshtml…
--->
 <style>
     body {
         background: none;
@@ -67,7 +64,7 @@
         padding: 2rem 2rem 2.5rem 2rem;
     }
 
-    /* Preformatted area styling */
+    /* Preformatted area styling (preview of the letter) */
     .coverletter-container {
         background: #f7fafc; /* gray-100 */
         border-radius: 0.5rem;
@@ -102,7 +99,6 @@
             transform: translateY(0);
         }
 
-    /* Download button style */
     .btn-download {
         margin-top: 1.5rem;
         margin-left: 1rem;
@@ -136,7 +132,7 @@
         <!-- Body -->
         <div class="result-card-body">
             <div class="coverletter-container">
-                <pre class="mb-0">@Model.CoverLetter</pre>
+                <pre class="mb-0">@Model.CoverLetterBody</pre>
             </div>
 
             <div style="display: flex; align-items: center;">
@@ -145,18 +141,20 @@
                     ← Generate Another
                 </a>
 
-                <!-- ADDED: “Download” button -->
+                <!-- “Download as Word” button (posts hidden fields) -->
                 <form asp-controller="CoverLetter"
-                      asp-action="Download"
+                      asp-action="DownloadWord"
                       method="post"
                       style="margin: 0; padding: 0;">
-                    <!--
-                      We need to POST the entire cover letter text, preserving newlines.
-                      Placing it in a hidden textarea ensures we don’t lose line breaks.
-                    -->
-                    <textarea name="coverLetter" style="display: none;">@Model.CoverLetter</textarea>
+                    <textarea name="name" style="display:none;">@Model.Name</textarea>
+                    <textarea name="title" style="display:none;">@Model.Title</textarea>
+                    <textarea name="email" style="display:none;">@Model.Email</textarea>
+                    <textarea name="address" style="display:none;">@Model.Address</textarea>
+                    <textarea name="phone" style="display:none;">@Model.Phone</textarea>
+                    <textarea name="coverLetterBody" style="display:none;">@Model.CoverLetterBody</textarea>
+
                     <button type="submit" class="btn btn-download">
-                        Download
+                        Download as Word
                     </button>
                 </form>
             </div>
