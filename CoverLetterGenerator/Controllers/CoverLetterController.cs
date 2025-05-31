@@ -1,8 +1,11 @@
 ﻿using System.IO;
+using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using CoverLetterApp.Models;
 using CoverLetterApp.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using UglyToad.PdfPig;          
 
 namespace CoverLetterApp.Controllers
 {
@@ -30,19 +33,9 @@ namespace CoverLetterApp.Controllers
                 return View("Index", request);
             }
 
-            // Read Job Description file into a string
-            string jobDescriptionText;
-            using (var reader = new StreamReader(request.JobDescriptionFile.OpenReadStream()))
-            {
-                jobDescriptionText = await reader.ReadToEndAsync();
-            }
-
-            // Read CV file into a string
-            string cvText;
-            using (var reader = new StreamReader(request.CVFile.OpenReadStream()))
-            {
-                cvText = await reader.ReadToEndAsync();
-            }
+            // Extract text from each uploaded file (handles .txt or .pdf)
+            string jobDescriptionText = await ExtractTextFromFile(request.JobDescriptionFile);
+            string cvText = await ExtractTextFromFile(request.CVFile);
 
             // Call your existing service (which expects two plain-text strings)
             var generatedCoverLetter = await _openAi.GenerateCoverLetterAsync(jobDescriptionText, cvText);
@@ -54,6 +47,42 @@ namespace CoverLetterApp.Controllers
             };
 
             return View("Result", vm);
+        }
+
+        /// <summary>
+        /// Reads an IFormFile. If it’s a PDF (.pdf extension), uses PdfPig to extract text.
+        /// Otherwise, reads it as plain text via StreamReader.
+        /// </summary>
+        private async Task<string> ExtractTextFromFile(IFormFile file)
+        {
+            // Determine the file extension in lowercase
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (extension == ".pdf")
+            {
+                // Use PdfPig to extract text from PDF
+                using (var stream = file.OpenReadStream())
+                using (PdfDocument document = PdfDocument.Open(stream))
+                {
+                    var sb = new StringBuilder();
+
+                    foreach (var page in document.GetPages())
+                    {
+                        // Append each page’s text
+                        sb.AppendLine(page.Text);
+                    }
+
+                    return sb.ToString();
+                }
+            }
+            else
+            {
+                // Fallback: treat as plain text
+                using (var reader = new StreamReader(file.OpenReadStream()))
+                {
+                    return await reader.ReadToEndAsync();
+                }
+            }
         }
     }
 }
