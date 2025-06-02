@@ -22,11 +22,14 @@ namespace CoverLetterApp.Controllers
 {
     public class CoverLetterController : Controller
     {
+        private readonly IWebHostEnvironment _env;
+
         private readonly IOpenAiService _openAi;
 
-        public CoverLetterController(IOpenAiService openAi)
+        public CoverLetterController(IOpenAiService openAi, IWebHostEnvironment env)
         {
             _openAi = openAi;
+            _env = env;
         }
 
         [HttpGet]
@@ -100,7 +103,7 @@ namespace CoverLetterApp.Controllers
             // 6) Populate ViewModel
             var vm = new CoverLetterResponse
             {
-                Name = "name",
+                Name = "Name Test",
                 Title = title,
                 Email = email,
                 Address = fullAddress,

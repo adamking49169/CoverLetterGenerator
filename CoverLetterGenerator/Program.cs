@@ -16,16 +16,15 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IOpenAiService, OpenAiService>();
 
 var app = builder.Build();
+
+builder.Configuration.AddEnvironmentVariables();
+
 if (builder.Environment.IsDevelopment())
 {
     Env.Load();  // Load environment variables from .env
     builder.Configuration.AddEnvironmentVariables();  // Add environment variables to the configuration
 }
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
