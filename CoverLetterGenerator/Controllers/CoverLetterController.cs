@@ -39,6 +39,7 @@ namespace CoverLetterApp.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Generate(CoverLetterRequest request)
         {
             if (!ModelState.IsValid)
@@ -118,13 +119,14 @@ namespace CoverLetterApp.Controllers
         /// Downloads a DOCX version of the cover letter using our template.
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult DownloadWord(
-     string name,
-     string title,
-     string email,
-     string address,
-     string phone,
-     string coverLetterBody)
+             string name,
+             string title,
+             string email,
+             string address,
+             string phone,
+             string coverLetterBody)
         {
             // 1) Validate inputs
             if (string.IsNullOrWhiteSpace(coverLetterBody) ||
